@@ -138,6 +138,67 @@
             color: var(--neon-pink);
         }
 
+        /* Search Bar */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .search-wrapper i.fa-magnifying-glass {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neon-cyan);
+            opacity: 0.7;
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        #channelSearch {
+            width: 100%;
+            padding: 11px 38px 11px 38px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(0, 255, 247, 0.18);
+            background: rgba(0, 255, 247, 0.03);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #channelSearch::placeholder {
+            color: rgba(232, 250, 255, 0.4);
+            font-weight: 500;
+        }
+
+        #channelSearch:focus {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 230, 0.05);
+            box-shadow: 0 0 15px rgba(180, 0, 255, 0.18);
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--neon-pink);
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0.7;
+            display: none;
+            padding: 4px;
+        }
+
+        .search-clear-btn:hover {
+            opacity: 1;
+        }
+
         .channel-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -184,6 +245,26 @@
             box-shadow: 0 4px 18px rgba(180, 0, 255, 0.4);
         }
 
+        .channel-btn mark {
+            background: var(--neon-pink);
+            color: #000;
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
+        .channel-btn.active mark {
+            background: #000;
+            color: var(--neon-cyan);
+        }
+
+        .no-results {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+
         .tv-status {
             font-size: 0.75rem;
             text-align: center;
@@ -217,6 +298,13 @@
             </video>
         </div>
 
+        <!-- Search -->
+        <div class="search-wrapper">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="channelSearch" placeholder="Search channel name..." autocomplete="off">
+            <button class="search-clear-btn" id="searchClearBtn" title="Clear search"><i class="fas fa-circle-xmark"></i></button>
+        </div>
+
         <!-- Channel Grid -->
         <div class="channel-list-title">Select Channel</div>
         <div class="channel-grid" id="tvChannelGrid">
@@ -244,8 +332,12 @@
 
             const gridContainer = document.getElementById('tvChannelGrid');
             const statusText = document.getElementById('tvStatusText');
+            const searchInput = document.getElementById('channelSearch');
+            const searchClearBtn = document.getElementById('searchClearBtn');
 
             const m3uUrl = 'https://raw.githubusercontent.com/marufmoinuddin/iptv/refs/heads/main/tv.m3u';
+
+            let allChannels = [];
 
             async function loadM3uPlaylist() {
                 try {
@@ -255,14 +347,15 @@
 
                     const channels = parseM3U(text);
                     if (channels.length === 0) {
-                        gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--danger);">No channels found.</div>';
+                        gridContainer.innerHTML = '<div class="no-results" style="color: var(--danger);">No channels found.</div>';
                         return;
                     }
 
-                    renderChannels(channels, player);
+                    allChannels = channels;
+                    renderChannels(allChannels, player, true);
                 } catch (error) {
                     console.error('Error fetching playlist:', error);
-                    gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Failed to load streams. CORS Block or Network issue.</div>';
+                    gridContainer.innerHTML = '<div class="no-results" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Failed to load streams. CORS Block or Network issue.</div>';
                 }
             }
 
@@ -294,38 +387,49 @@
                 return result;
             }
 
-            function renderChannels(channels, videoPlayer) {
+            function highlightMatch(name, query) {
+                if (!query) return name;
+                const idx = name.toLowerCase().indexOf(query.toLowerCase());
+                if (idx === -1) return name;
+                return name.substring(0, idx) +
+                    '<mark>' + name.substring(idx, idx + query.length) + '</mark>' +
+                    name.substring(idx + query.length);
+            }
+
+            function playChannel(channel, btn, videoPlayer) {
+                document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+                if (btn) btn.classList.add('active');
+
+                videoPlayer.src({
+                    src: channel.url,
+                    type: 'application/x-mpegURL'
+                });
+                videoPlayer.play().catch(e => console.log("Playback handling:", e));
+
+                statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
+            }
+
+            function renderChannels(channels, videoPlayer, autoplayFirst, query = '') {
                 gridContainer.innerHTML = '';
+
+                if (channels.length === 0) {
+                    gridContainer.innerHTML = '<div class="no-results"><i class="fas fa-ghost"></i> No channel found matching your search.</div>';
+                    return;
+                }
 
                 channels.forEach((channel, index) => {
                     const btn = document.createElement('button');
                     btn.className = 'channel-btn';
-                    btn.textContent = channel.name;
+                    btn.innerHTML = highlightMatch(channel.name, query);
                     btn.title = channel.name;
 
                     btn.addEventListener('click', function () {
-                        document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-
-                        // Mixed content check: HTTPS page can't load HTTP stream in Chrome
-                        if (window.location.protocol === 'https:' && channel.url.startsWith('http://')) {
-                            statusText.innerHTML = `➜ <span style="color: var(--danger); font-weight:bold;">${channel.name}</span> blocked: insecure (HTTP) stream on HTTPS page. Try opening this page over HTTP, or use a CORS/HTTP proxy.`;
-                            videoPlayer.src({ src: '', type: '' });
-                            return;
-                        }
-
-                        videoPlayer.src({
-                            src: channel.url,
-                            type: 'application/x-mpegURL'
-                        });
-                        videoPlayer.play().catch(e => console.log("Playback handling:", e));
-
-                        statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
+                        playChannel(channel, btn, videoPlayer);
                     });
 
                     gridContainer.appendChild(btn);
 
-                    if (index === 0) {
+                    if (autoplayFirst && index === 0) {
                         btn.classList.add('active');
                         videoPlayer.src({
                             src: channel.url,
@@ -335,6 +439,24 @@
                     }
                 });
             }
+
+            searchInput.addEventListener('input', function () {
+                const query = searchInput.value.trim();
+                searchClearBtn.style.display = query ? 'block' : 'none';
+
+                const filtered = query
+                    ? allChannels.filter(ch => ch.name.toLowerCase().includes(query.toLowerCase()))
+                    : allChannels;
+
+                renderChannels(filtered, player, false, query);
+            });
+
+            searchClearBtn.addEventListener('click', function () {
+                searchInput.value = '';
+                searchClearBtn.style.display = 'none';
+                renderChannels(allChannels, player, false, '');
+                searchInput.focus();
+            });
 
             loadM3uPlaylist();
         });

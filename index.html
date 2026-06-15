@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saif Live TV - Test Player</title>
-    
+    <title>𝐓𝐀𝐌𝐈𝐌 ⸙ 𝐋𝐈𝐕𝐄 𝐓𝐕</title>
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- Video.js CSS -->
@@ -12,16 +12,21 @@
 
     <style>
         :root {
-            --card-bg: #121214;
-            --text: #ffffff;
-            --gold: #ffd700;
-            --fire1: #ff4500;
-            --fire2: #ff8c00;
-            --danger: #ff3333;
+            --bg: #060608;
+            --card-bg: #0d0d12;
+            --neon-cyan: #00fff7;
+            --neon-pink: #ff00e6;
+            --neon-purple: #b400ff;
+            --text: #e8faff;
+            --danger: #ff3360;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: #0a0a0c;
+            background: radial-gradient(circle at top, #14141c 0%, #060608 60%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
@@ -29,38 +34,70 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            color: var(--text);
         }
 
         .tv-container {
             background: var(--card-bg);
-            border-radius: 24px;
+            border-radius: 20px;
             padding: 24px;
-            border: 1px solid rgba(255, 215, 0, 0.12);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            border: 1px solid rgba(0, 255, 247, 0.18);
+            box-shadow:
+                0 0 25px rgba(0, 255, 247, 0.08),
+                0 0 50px rgba(180, 0, 255, 0.06),
+                0 20px 40px rgba(0, 0, 0, 0.8);
             max-width: 500px;
             width: 100%;
-            color: var(--text);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tv-container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-purple));
         }
 
         .tv-title {
-            font-size: 0.9rem;
-            color: var(--gold);
-            margin: 0 0 16px 0;
-            letter-spacing: 2px;
+            font-size: 0.95rem;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 0 0 6px 0;
+            letter-spacing: 3px;
             text-transform: uppercase;
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: bold;
+            font-weight: 800;
+        }
+
+        .tv-author {
+            font-size: 0.7rem;
+            color: var(--neon-cyan);
+            opacity: 0.75;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .divider {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,247,0.35), transparent);
+            margin: 12px 0 16px;
         }
 
         .player-wrapper {
             position: relative;
             width: 100%;
-            border-radius: 16px;
+            border-radius: 14px;
             overflow: hidden;
-            border: 1.5px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1.5px solid rgba(0, 255, 247, 0.25);
+            box-shadow: 0 0 25px rgba(180, 0, 255, 0.12);
             background: #000;
             margin-bottom: 20px;
         }
@@ -71,9 +108,8 @@
             aspect-ratio: 16 / 9;
         }
 
-        /* Custom Play Button Design */
         .video-js .vjs-big-play-button {
-            background: linear-gradient(135deg, var(--fire1), var(--fire2)) !important;
+            background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple)) !important;
             border: none !important;
             color: #000 !important;
             border-radius: 50% !important;
@@ -82,17 +118,24 @@
             line-height: 60px !important;
             margin-left: -30px !important;
             margin-top: -30px !important;
+            box-shadow: 0 0 20px rgba(255, 0, 230, 0.5);
         }
 
         .channel-list-title {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 800;
-            color: var(--text);
+            color: var(--neon-cyan);
             margin-bottom: 12px;
-            opacity: 0.8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+        }
+
+        .channel-list-title::before {
+            content: "➜";
+            color: var(--neon-pink);
         }
 
         .channel-grid {
@@ -104,20 +147,19 @@
             padding-right: 5px;
         }
 
-        /* Scrollbar styling */
         .channel-grid::-webkit-scrollbar {
             width: 5px;
         }
         .channel-grid::-webkit-scrollbar-thumb {
-            background: var(--gold);
+            background: var(--neon-cyan);
             border-radius: 10px;
         }
 
         .channel-btn {
             padding: 12px 10px;
-            border-radius: 12px;
-            border: 1.5px solid rgba(255, 215, 0, 0.15);
-            background: rgba(255, 215, 0, 0.04);
+            border-radius: 10px;
+            border: 1.5px solid rgba(0, 255, 247, 0.15);
+            background: rgba(0, 255, 247, 0.03);
             color: var(--text);
             font-size: 0.8rem;
             font-weight: 700;
@@ -130,31 +172,44 @@
         }
 
         .channel-btn:hover {
-            border-color: var(--gold);
-            background: rgba(255, 215, 0, 0.1);
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 230, 0.08);
             transform: translateY(-2px);
         }
 
         .channel-btn.active {
-            background: linear-gradient(135deg, var(--fire1), var(--fire2));
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
             color: #000;
-            border-color: var(--fire2);
-            box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+            border-color: var(--neon-pink);
+            box-shadow: 0 4px 18px rgba(180, 0, 255, 0.4);
         }
 
         .tv-status {
             font-size: 0.75rem;
             text-align: center;
-            margin-top: 15px;
-            opacity: 0.6;
+            margin-top: 16px;
+            opacity: 0.75;
+        }
+
+        .tv-footer {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: var(--neon-pink);
+            opacity: 0.8;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 
     <div class="tv-container">
-        <div class="tv-title"><i class="fas fa-tv"></i> Saif Live tv</div>
-        
+        <div class="tv-title"><i class="fas fa-satellite-dish"></i> 𝐓𝐀𝐌𝐈𝐌 𝐋𝐈𝐕𝐄 𝐓𝐕</div>
+        <div class="tv-author">⚡ 𝘱𝘰𝘸𝘦𝘳𝘦𝘥 𝘣𝘺 ♡—͟͞͞𝐓𝐀𝐌𝐈𝐌 ⸙</div>
+
+        <hr class="divider">
+
         <!-- Player -->
         <div class="player-wrapper">
             <video id="saif-tv-player" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto">
@@ -163,14 +218,17 @@
         </div>
 
         <!-- Channel Grid -->
-        <div class="channel-list-title"><i class="fas fa-list-ul"></i> Select Channel:</div>
+        <div class="channel-list-title">Select Channel</div>
         <div class="channel-grid" id="tvChannelGrid">
             <div style="grid-column: 1/-1; text-align: center; padding: 20px; opacity: 0.7;">
                 <i class="fas fa-spinner fa-spin"></i> Fetching Live Streams...
             </div>
         </div>
-        
-        <div class="tv-status" id="tvStatusText">Testing Mode - Direct Repository Parse</div>
+
+        <div class="tv-status" id="tvStatusText">➜ Ready</div>
+
+        <hr class="divider">
+        <div class="tv-footer">━━━━━ ♡—͟͞͞𝐓𝐀𝐌𝐈𝐌 ⸙ ━━━━━</div>
     </div>
 
     <!-- Video.js Script Engine -->
@@ -178,7 +236,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Player Initialization
             const player = videojs('saif-tv-player', {
                 fluid: true,
                 autoplay: false,
@@ -188,7 +245,6 @@
             const gridContainer = document.getElementById('tvChannelGrid');
             const statusText = document.getElementById('tvStatusText');
 
-            // আপনার দেওয়া নতুন M3U প্লেলিস্ট URL
             const m3uUrl = 'https://raw.githubusercontent.com/marufmoinuddin/iptv/refs/heads/main/tv.m3u';
 
             async function loadM3uPlaylist() {
@@ -196,7 +252,7 @@
                     const response = await fetch(m3uUrl);
                     if (!response.ok) throw new Error('Network response was not ok');
                     const text = await response.text();
-                    
+
                     const channels = parseM3U(text);
                     if (channels.length === 0) {
                         gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--danger);">No channels found.</div>';
@@ -210,7 +266,6 @@
                 }
             }
 
-            // M3U Parser Function
             function parseM3U(data) {
                 const lines = data.split('\n');
                 const result = [];
@@ -218,7 +273,7 @@
 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
-                    
+
                     if (line.startsWith('#EXTINF:')) {
                         const commaIndex = line.indexOf(',');
                         if (commaIndex !== -1) {
@@ -232,16 +287,15 @@
                                 name: currentChannelName,
                                 url: line
                             });
-                            currentChannelName = ''; // Reset
+                            currentChannelName = '';
                         }
                     }
                 }
                 return result;
             }
 
-            // UI Render Buttons
             function renderChannels(channels, videoPlayer) {
-                gridContainer.innerHTML = ''; // Clear Loader
+                gridContainer.innerHTML = '';
 
                 channels.forEach((channel, index) => {
                     const btn = document.createElement('button');
@@ -253,26 +307,31 @@
                         document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
 
-                        // Load and Play stream
+                        // Mixed content check: HTTPS page can't load HTTP stream in Chrome
+                        if (window.location.protocol === 'https:' && channel.url.startsWith('http://')) {
+                            statusText.innerHTML = `➜ <span style="color: var(--danger); font-weight:bold;">${channel.name}</span> blocked: insecure (HTTP) stream on HTTPS page. Try opening this page over HTTP, or use a CORS/HTTP proxy.`;
+                            videoPlayer.src({ src: '', type: '' });
+                            return;
+                        }
+
                         videoPlayer.src({
                             src: channel.url,
                             type: 'application/x-mpegURL'
                         });
                         videoPlayer.play().catch(e => console.log("Playback handling:", e));
-                        
-                        statusText.innerHTML = `Playing: <span style="color: var(--gold); font-weight:bold;">${channel.name}</span>`;
+
+                        statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
                     });
 
                     gridContainer.appendChild(btn);
 
-                    // Auto select first channel as default source
                     if (index === 0) {
                         btn.classList.add('active');
                         videoPlayer.src({
                             src: channel.url,
                             type: 'application/x-mpegURL'
                         });
-                        statusText.innerHTML = `Ready: <span style="color: var(--gold); font-weight:bold;">${channel.name}</span>`;
+                        statusText.innerHTML = `➜ Ready: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
                     }
                 });
             }

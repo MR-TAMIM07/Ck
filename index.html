@@ -265,11 +265,43 @@
             font-size: 0.8rem;
         }
 
+        .tv-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
         .tv-status {
             font-size: 0.75rem;
             text-align: center;
-            margin-top: 16px;
-            opacity: 0.75;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .switch-source-btn {
+            background: rgba(255, 0, 230, 0.08);
+            border: 1px solid rgba(255, 0, 230, 0.35);
+            color: var(--neon-pink);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 5px 11px;
+            border-radius: 20px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            transition: all 0.25s ease;
+        }
+
+        .switch-source-btn:hover {
+            background: rgba(255, 0, 230, 0.18);
+            box-shadow: 0 0 12px rgba(255, 0, 230, 0.3);
+        }
+
+        .switch-source-btn:active {
+            transform: scale(0.95);
         }
 
         .tv-footer {
@@ -313,7 +345,10 @@
             </div>
         </div>
 
-        <div class="tv-status" id="tvStatusText">➜ Ready</div>
+        <div class="tv-status-row">
+            <div class="tv-status" id="tvStatusText">➜ Ready</div>
+            <button class="switch-source-btn" id="switchSourceBtn" title="Try another source / reload"><i class="fas fa-rotate"></i> Switch Source</button>
+        </div>
 
         <hr class="divider">
         <div class="tv-footer">━━━━━ ♡—͟͞͞𝐓𝐀𝐌𝐈𝐌 ⸙ ━━━━━</div>
@@ -334,10 +369,39 @@
             const statusText = document.getElementById('tvStatusText');
             const searchInput = document.getElementById('channelSearch');
             const searchClearBtn = document.getElementById('searchClearBtn');
+            const switchSourceBtn = document.getElementById('switchSourceBtn');
 
             const m3uUrl = 'https://raw.githubusercontent.com/marufmoinuddin/iptv/refs/heads/main/tv.m3u';
 
             let allChannels = [];
+            let currentChannel = null;
+            let currentSourceIndex = 0;
+            let stallTimer = null;
+
+            // If the player stalls/buffers for too long, hint the user to switch source
+            // instead of letting it spin forever with no feedback.
+            player.on('waiting', function () {
+                clearTimeout(stallTimer);
+                stallTimer = setTimeout(function () {
+                    if (currentChannel) {
+                        statusText.innerHTML = `➜ <span style="color: var(--neon-pink); font-weight:bold;">Buffering...</span> network slow or source busy (high traffic during live matches) — try "Switch Source" 👇`;
+                    }
+                }, 8000);
+            });
+
+            player.on('playing', function () {
+                clearTimeout(stallTimer);
+                if (currentChannel) {
+                    statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${currentChannel.name}</span>`;
+                }
+            });
+
+            switchSourceBtn.addEventListener('click', function () {
+                if (!currentChannel) return;
+                const nextIndex = (currentSourceIndex + 1) % currentChannel.urls.length;
+                player.off('error');
+                attemptPlay(currentChannel, player, nextIndex);
+            });
 
             async function loadM3uPlaylist() {
                 try {
@@ -405,6 +469,10 @@
                     statusText.innerHTML = `➜ <span style="color: var(--danger); font-weight:bold;">${channel.name} এখন আনরিচেবল — সব সোর্স ডাউন আছে, কিছুক্ষণ পর আবার ট্রাই করো ⚠️</span>`;
                     return;
                 }
+
+                currentChannel = channel;
+                currentSourceIndex = sourceIndex;
+                clearTimeout(stallTimer);
 
                 const url = channel.urls[sourceIndex];
 

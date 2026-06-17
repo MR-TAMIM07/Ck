@@ -361,7 +361,8 @@
 
             function parseM3U(data) {
                 const lines = data.split('\n');
-                const result = [];
+                const channelMap = new Map(); // name -> [urls]
+                const order = [];
                 let currentChannelName = '';
 
                 for (let i = 0; i < lines.length; i++) {
@@ -376,15 +377,18 @@
                         }
                     } else if (line.startsWith('http://') || line.startsWith('https://')) {
                         if (currentChannelName) {
-                            result.push({
-                                name: currentChannelName,
-                                url: line
-                            });
+                            // Same channel name can appear more than once in the playlist
+                            // (e.g. multiple T Sports mirrors) — keep all urls as fallback sources
+                            if (!channelMap.has(currentChannelName)) {
+                                channelMap.set(currentChannelName, []);
+                                order.push(currentChannelName);
+                            }
+                            channelMap.get(currentChannelName).push(line);
                             currentChannelName = '';
                         }
                     }
                 }
-                return result;
+                return order.map(name => ({ name, urls: channelMap.get(name) }));
             }
 
             function highlightMatch(name, query) {
@@ -396,17 +400,42 @@
                     name.substring(idx + query.length);
             }
 
+            function attemptPlay(channel, videoPlayer, sourceIndex) {
+                if (sourceIndex >= channel.urls.length) {
+                    statusText.innerHTML = `➜ <span style="color: var(--danger); font-weight:bold;">${channel.name} এখন আনরিচেবল — সব সোর্স ডাউন আছে, কিছুক্ষণ পর আবার ট্রাই করো ⚠️</span>`;
+                    return;
+                }
+
+                const url = channel.urls[sourceIndex];
+
+                if (sourceIndex > 0) {
+                    statusText.innerHTML = `➜ Trying backup source (${sourceIndex + 1}/${channel.urls.length}) for <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>...`;
+                } else {
+                    statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
+                }
+
+                videoPlayer.src({
+                    src: url,
+                    type: 'application/x-mpegURL'
+                });
+
+                // If this source errors out (dead link, blocked, etc.) automatically
+                // try the next available url for this same channel, if any.
+                videoPlayer.one('error', function () {
+                    attemptPlay(channel, videoPlayer, sourceIndex + 1);
+                });
+
+                videoPlayer.play().catch(e => console.log("Playback handling:", e));
+            }
+
             function playChannel(channel, btn, videoPlayer) {
                 document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
                 if (btn) btn.classList.add('active');
 
-                videoPlayer.src({
-                    src: channel.url,
-                    type: 'application/x-mpegURL'
-                });
-                videoPlayer.play().catch(e => console.log("Playback handling:", e));
+                // clear any pending fallback handler left over from a previous channel
+                videoPlayer.off('error');
 
-                statusText.innerHTML = `➜ Playing: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
+                attemptPlay(channel, videoPlayer, 0);
             }
 
             function renderChannels(channels, videoPlayer, autoplayFirst, query = '') {
@@ -431,11 +460,8 @@
 
                     if (autoplayFirst && index === 0) {
                         btn.classList.add('active');
-                        videoPlayer.src({
-                            src: channel.url,
-                            type: 'application/x-mpegURL'
-                        });
-                        statusText.innerHTML = `➜ Ready: <span style="color: var(--neon-cyan); font-weight:bold;">${channel.name}</span>`;
+                        videoPlayer.off('error');
+                        attemptPlay(channel, videoPlayer, 0);
                     }
                 });
             }
